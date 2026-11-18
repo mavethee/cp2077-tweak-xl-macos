@@ -313,11 +313,23 @@ Red::TweakDBID Red::TweakDBReflection::GetRecordSampleId(const Red::CClass* aTyp
 
 uint32_t Red::TweakDBReflection::GetRecordTypeHash(const Red::CClass* aType)
 {
-    std::string_view name(aType->name.ToString());
-    name.remove_prefix(RecordTypePrefixLength);
-    name.remove_suffix(RecordTypeSuffixLength);
+    const char* str = aType ? aType->name.ToString() : nullptr;
+    if (!str || !*str)
+    {
+        fprintf(stderr, "[TweakXL] GetRecordTypeHash: null or empty name for aType %p\n", aType);
+        return 0;
+    }
 
-    return Red::Murmur3_32(reinterpret_cast<const uint8_t*>(name.data()), name.size());
+    std::string_view name(str);
+    if (name.starts_with(RecordTypePrefix))
+        name.remove_prefix(RecordTypePrefixLength);
+
+    if (name.ends_with(RecordTypeSuffix))
+        name.remove_suffix(RecordTypeSuffixLength);
+
+    uint32_t hash = Red::Murmur3_32(reinterpret_cast<const uint8_t*>(name.data()), name.size());
+    fprintf(stderr, "[TweakXL] GetRecordTypeHash: raw='%s' short='%.*s' hash=0x%08x\n", str, (int)name.size(), name.data(), hash);
+    return hash;
 }
 
 std::string Red::TweakDBReflection::ResolvePropertyName(Red::TweakDBID aSampleId, Red::CName aGetterName)

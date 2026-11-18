@@ -12,7 +12,11 @@ constexpr bool IsFakeStatic(CName aTypeName)
     return aTypeName == TDBIDHelper;
 }
 
+#ifdef __APPLE__
+using CallFunction_t = bool (*)(CBaseFunction* aFunc, CBaseStack* aStack, CStackFrame* aFrame);
+#else
 using CallFunction_t = bool (*)(IFunction*, IScriptable* aContext, CStackFrame* aFrame, void* aRet, void* aRetType);
+#endif
 
 #if defined(RED4EXT_V1_SDK_VERSION_CURRENT) || defined(RED4EXT_SDK_0_5_0)
 inline UniversalRelocFunc<CallFunction_t> CallFunctionWithFrame(RED4ext::Detail::AddressHashes::CBaseFunction_InternalExecute);
@@ -73,6 +77,9 @@ inline bool CallFunctionWithStack(Red::CStackFrame* aFrame, CBaseFunction* aFunc
         frame.func = aFunc;
     }
 
+#ifdef __APPLE__
+    return CallFunctionWithFrame(aFunc, &aStack, &frame);
+#else
     static auto* s_dummyContext = reinterpret_cast<IScriptable*>(Red::GetClass("entEntity")->CreateInstance());
 
     return CallFunctionWithFrame(aFunc,
@@ -80,6 +87,7 @@ inline bool CallFunctionWithStack(Red::CStackFrame* aFrame, CBaseFunction* aFunc
                                  &frame,
                                  aStack.result ? aStack.result->value : nullptr,
                                  aStack.result ? aStack.result->type : nullptr);
+#endif
 }
 
 inline bool CallFunctionWithStack(CBaseFunction* aFunc, CStack& aStack)
